@@ -26,6 +26,7 @@
     "@aws-cdk/core:target-partitions": [
       "aws",
       "aws-cn"
-    ]
+    ],
+    "appName": "CodePipeline-Lambda"
   }
 }

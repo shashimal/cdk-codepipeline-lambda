@@ -4,6 +4,7 @@ import {Artifact, Pipeline} from "aws-cdk-lib/aws-codepipeline";
 import {BuildSpec, LinuxBuildImage, PipelineProject} from "aws-cdk-lib/aws-codebuild";
 import {Effect, ManagedPolicy, Policy, PolicyStatement} from "aws-cdk-lib/aws-iam";
 import {Repository} from "aws-cdk-lib/aws-codecommit";
+import {Bucket} from "aws-cdk-lib/aws-s3";
 import {
     CloudFormationCreateReplaceChangeSetAction, CloudFormationExecuteChangeSetAction,
     CodeBuildAction,
@@ -13,6 +14,10 @@ import {
 export class CdkCodepipelineLambdaStack extends Stack {
     constructor(scope: Construct, id: string, props?: StackProps) {
         super(scope, id, props);
+
+        //Creating s3 Bucket
+        const artifactsBucket = new Bucket(this, "S3BucketForPipelineArtifacts");
+
 
         //CodePipeline
         const codepipeline = new Pipeline(this, 'CodePipelineForLambdaDeployment', {});
@@ -41,7 +46,7 @@ export class CdkCodepipelineLambdaStack extends Stack {
         const buildAction = new CodeBuildAction({
             actionName: "BuildAction",
             input: sourceArtifact,
-            project: this.createCodeBuildProject(),
+            project: this.createCodeBuildProject(artifactsBucket.bucketName),
             outputs: [buildArtifact]
         });
 
@@ -54,7 +59,7 @@ export class CdkCodepipelineLambdaStack extends Stack {
         //##############################################################################################################
 
         //Deploy Stage
-        const stackName = 'Codepipeline-Lambda-Stack';
+        const stackName = 'Codepipeline-Lambda-Demo-Stack';
         const changeSetName = 'StagedChangeSet'
 
         const createReplaceChangeSetAction = new CloudFormationCreateReplaceChangeSetAction({
@@ -96,13 +101,13 @@ export class CdkCodepipelineLambdaStack extends Stack {
     //Helper Functions
 
     //Creating code build project
-    private createCodeBuildProject = (): PipelineProject => {
+    private createCodeBuildProject = (artifactsBucket:string): PipelineProject => {
         const codeBuildProject = new PipelineProject(this, 'CodeBuildProject', {
             projectName: 'CodeBuild-Lambda',
             environment: {
                 buildImage: LinuxBuildImage.STANDARD_5_0
             },
-            buildSpec: BuildSpec.fromObject(this.getBuildSpecContent())
+            buildSpec: BuildSpec.fromObject(this.getBuildSpecContent(artifactsBucket))
         });
 
         codeBuildProject.role?.addManagedPolicy(ManagedPolicy.fromAwsManagedPolicyName('AmazonS3FullAccess'));
@@ -110,7 +115,7 @@ export class CdkCodepipelineLambdaStack extends Stack {
     }
 
     //Creating the build spec content.
-    private getBuildSpecContent = () => {
+    private getBuildSpecContent = (artifactsBucket: string) => {
         return {
             version: '0.2',
             phases: {
@@ -129,7 +134,7 @@ export class CdkCodepipelineLambdaStack extends Stack {
                         'echo Build started on `date`',
                         'echo Build started on `date`',
                         'sam build',
-                        'export BUCKET=du-lambda-demo-bucket',
+                        'export BUCKET='+artifactsBucket,
                         'sam package --s3-bucket $BUCKET --output-template-file outputtemplate.yml',
                         'echo Build completed on `date`'
                     ]

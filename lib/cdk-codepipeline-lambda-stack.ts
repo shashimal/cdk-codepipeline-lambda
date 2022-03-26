@@ -28,7 +28,7 @@ export class CdkCodepipelineLambdaStack extends Stack {
         const sourceArtifact = new Artifact();
         const sourceAction = new CodeCommitSourceAction({
             actionName: "Source",
-            repository: Repository.fromRepositoryName(this, `CodeCommitRepositoryForLambdaFunction`, 'lambda-demo'),
+            repository: Repository.fromRepositoryName(this, `CodeCommitRepositoryForLambdaFunction`, 'lambda-test-repository'),
             branch: 'master',
             output: sourceArtifact,
         });
@@ -59,7 +59,7 @@ export class CdkCodepipelineLambdaStack extends Stack {
         //##############################################################################################################
 
         //Deploy Stage
-        const stackName = 'Codepipeline-Lambda-Demo-Stack';
+        const stackName = 'Codepipeline-Lambda-Canary-Stack';
         const changeSetName = 'StagedChangeSet'
 
         const createReplaceChangeSetAction = new CloudFormationCreateReplaceChangeSetAction({
